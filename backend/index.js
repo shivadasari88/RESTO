@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const logger = require('./middleware/logger');
+const session = require('express-session');
 
 // Load env vars
 dotenv.config();
@@ -20,6 +21,18 @@ app.use(cors({
 app.use(express.json()); // Body parser
 app.use(logger); // Use our request logger
 
+// Session middleware (for anonymous customer tracking)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_session_secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to true in production with HTTPS
+}));
+
+// Serve static files from public directory
+app.use(express.static('backend/public'));
+
+
 // Basic route for testing
 app.get('/api/test', (req, res) => {
   res.status(200).json({ success: true, message: 'Hello from QR Restaurant API!' });
@@ -27,6 +40,8 @@ app.get('/api/test', (req, res) => {
 
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/menu', require('./routes/menu')); // Add this line
+app.use('/api/orders', require('./routes/orders')); // Add this line
 
 // Handle undefined routes
 app.all('*', (req, res, next) => {

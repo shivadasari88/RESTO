@@ -56,4 +56,15 @@ const menuItemSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Virtual for getting full image URL
+menuItemSchema.virtual('imageUrlFull').get(function() {
+  if (this.imageUrl && !this.imageUrl.startsWith('http')) {
+    return `${process.env.BACKEND_URL || 'http://localhost:5000'}${this.imageUrl}`;
+  }
+  return this.imageUrl;
+});
+
+// Ensure virtuals are included when converting to JSON
+menuItemSchema.set('toJSON', { virtuals: true });
+
 module.exports = mongoose.model('MenuItem', menuItemSchema);

@@ -31,4 +31,14 @@ tableSchema.pre('save', function(next) {
   next();
 });
 
+// Method to check if table is available
+tableSchema.methods.isAvailable = function() {
+  return !this.isOccupied;
+};
+
+// Static method to find available tables
+tableSchema.statics.findAvailable = function() {
+  return this.find({ isOccupied: false });
+};
+
 module.exports = mongoose.model('Table', tableSchema);
