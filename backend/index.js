@@ -25,6 +25,9 @@ app.get('/api/test', (req, res) => {
   res.status(200).json({ success: true, message: 'Hello from QR Restaurant API!' });
 });
 
+// Mount routers
+app.use('/api/auth', require('./routes/auth'));
+
 // Handle undefined routes
 app.all('*', (req, res, next) => {
   next(new ApiError(404, `Route not found: ${req.originalUrl}`));
