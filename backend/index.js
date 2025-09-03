@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const logger = require('./middleware/logger');
 const session = require('express-session');
+const { configureSocket } = require('./socket/socket'); 
 
 // Load env vars
 dotenv.config();
@@ -56,6 +57,12 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
+
+// Configure Socket.IO
+const io = configureSocket(server);
+
+// Make io accessible to routes and controllers
+app.set('io', io);
 
 // Handle unhandled promise rejections (e.g., database connection errors)
 process.on('unhandledRejection', (err, promise) => {

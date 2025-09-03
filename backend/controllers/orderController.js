@@ -119,6 +119,14 @@ const createOrder = asyncHandler(async (req, res, next) => {
   // Emit real-time event (we'll implement this in Socket.io module)
   // req.app.get('io').emit('newOrder', populatedOrder);
 
+  // Emit real-time event
+const io = req.app.get('io');
+if (io) {
+  io.emit('newOrder', populatedOrder);
+  // Also notify specific rooms
+  io.to('admin').to('kitchen').emit('newOrder', populatedOrder);
+}
+
   res.status(201).json({
     success: true,
     data: populatedOrder
@@ -176,6 +184,16 @@ const updateOrderStatus = asyncHandler(async (req, res, next) => {
 
   // Emit real-time event
   // req.app.get('io').emit('orderStatusUpdated', populatedOrder);
+
+  // Emit real-time event
+const io = req.app.get('io');
+if (io) {
+  io.emit('orderStatusUpdated', populatedOrder);
+  // Notify specific rooms
+  io.to('admin').to('kitchen').to('runner').emit('orderStatusUpdated', populatedOrder);
+  io.to(`table-${populatedOrder.tableId._id}`).emit('orderStatusUpdated', populatedOrder);
+}
+
 
   res.status(200).json({
     success: true,
