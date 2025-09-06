@@ -28,6 +28,8 @@ function App() {
                 <Route path="/payment" element={<PaymentPage />} />
                 
 
+
+
                 {/* Default route */}
                 <Route path="/" element={
                   <div className="container mx-auto px-4 py-8 text-center">
