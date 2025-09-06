@@ -46,7 +46,10 @@ const getOrder = asyncHandler(async (req, res, next) => {
 
   // Check if user has access to this order
   // Staff can see any order, customers can only see their own (via session)
-  if (req.user.role === 'customer' && order.customerSessionId !== req.sessionID) {
+  const isStaff = ['admin', 'kitchen', 'runner'].includes(req.user.role);
+  const isOrderOwner = order.customerSessionId === req.sessionID;
+  
+  if (!isStaff && !isOrderOwner) {
     return next(new ApiError(403, 'Not authorized to access this order'));
   }
 
@@ -98,34 +101,30 @@ const createOrder = asyncHandler(async (req, res, next) => {
     totalAmount += menuItem.price * item.quantity;
   }
 
-  // Create order
+  // Create order with session ID
   const order = await Order.create({
     tableId,
     items: orderItems,
     totalAmount,
-    customerSessionId: req.sessionID, // For anonymous customers
+    customerSessionId: req.sessionID, // Store session ID for anonymous customers
     preparationNote: specialInstructions
   });
 
-  // Populate the created order for response
+  // Populate the created order for response WITH ALL DETAILS
   const populatedOrder = await Order.findById(order._id)
     .populate('tableId', 'tableNumber')
-    .populate('items.menuItemId', 'name price');
+    .populate('items.menuItemId', 'name price description imageUrl'); // Add more fields if needed
 
   // Set table as occupied
   table.isOccupied = true;
   await table.save();
 
-  // Emit real-time event (we'll implement this in Socket.io module)
-  // req.app.get('io').emit('newOrder', populatedOrder);
-
   // Emit real-time event
-const io = req.app.get('io');
-if (io) {
-  io.emit('newOrder', populatedOrder);
-  // Also notify specific rooms
-  io.to('admin').to('kitchen').emit('newOrder', populatedOrder);
-}
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('newOrder', populatedOrder);
+    io.to('admin').to('kitchen').emit('newOrder', populatedOrder);
+  }
 
   res.status(201).json({
     success: true,
@@ -259,11 +258,40 @@ const cancelOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Get order by ID (public access for customers)
+// @route   GET /api/orders/public/:id
+// @access  Public
+const getOrderPublic = asyncHandler(async (req, res, next) => {
+  const order = await Order.findById(req.params.id)
+    .populate('tableId', 'tableNumber')
+    .populate('items.menuItemId', 'name price description');
+
+  if (!order) {
+    return next(new ApiError(404, `Order not found with id of ${req.params.id}`));
+  }
+
+  // For public access, we can implement a simple security measure
+  // For example, only allow access to orders that are not too old
+  const orderAge = Date.now() - new Date(order.createdAt).getTime();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+  if (orderAge > maxAge) {
+    return next(new ApiError(403, 'Order access expired'));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: order
+  });
+});
+
 module.exports = {
   getOrders,
   getOrder,
   createOrder,
   updateOrderStatus,
   getOrdersByTable,
-  cancelOrder
+  cancelOrder,
+
+  getOrderPublic
 };

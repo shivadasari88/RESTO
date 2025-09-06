@@ -78,4 +78,9 @@ orderSchema.pre('save', function(next) {
   next();
 });
 
+// Add index for better query performance
+orderSchema.index({ tableId: 1, status: 1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('Order', orderSchema);

@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');
+const corsMiddleware = require('./middleware/cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
@@ -16,18 +16,24 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173' // Allow requests from your Vite frontend
-}));
+// CORS configuration
+app.use(corsMiddleware);
+
+
 app.use(express.json()); // Body parser
+app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+
 app.use(logger); // Use our request logger
 
 // Session middleware (for anonymous customer tracking)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_session_secret',
+  secret: process.env.SESSION_SECRET || 'your_session_secret_here',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Set to true in production with HTTPS
+  cookie: { 
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Serve static files from public directory
@@ -41,8 +47,9 @@ app.get('/api/test', (req, res) => {
 
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/menu', require('./routes/menu')); // Add this line
-app.use('/api/orders', require('./routes/orders')); // Add this line
+app.use('/api/menu', require('./routes/menu')); 
+app.use('/api/orders', require('./routes/orders')); 
+app.use('/api/payments', require('./routes/payments'));
 
 // Handle undefined routes
 app.all('*', (req, res, next) => {
