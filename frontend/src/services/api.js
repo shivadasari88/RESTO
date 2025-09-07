@@ -2,15 +2,12 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
-console.log('API Base URL:', API_BASE_URL); // Add this for debugging
-
 const api = axios.create({
   baseURL: API_BASE_URL,
-  //withCredentials: true,
-  timeout: 10000, // Add timeout
+  withCredentials: true, // For sessions
 });
 
-// Add better error handling
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -20,6 +17,19 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/staff/login';
+    }
     return Promise.reject(error);
   }
 );

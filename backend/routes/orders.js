@@ -34,4 +34,6 @@ router.route('/:id')
   .put(authorizeRoles('admin', 'kitchen', 'runner'), updateOrderStatus)
   .delete(authorizeRoles('admin'), cancelOrder);
 
+router.route('/:orderId/status')
+  .put(protect, authorizeRoles('admin', 'kitchen', 'runner'), updateOrderStatus);
 module.exports = router;

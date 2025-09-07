@@ -119,12 +119,13 @@ const createOrder = asyncHandler(async (req, res, next) => {
   table.isOccupied = true;
   await table.save();
 
-  // Emit real-time event
-  const io = req.app.get('io');
-  if (io) {
-    io.emit('newOrder', populatedOrder);
-    io.to('admin').to('kitchen').emit('newOrder', populatedOrder);
-  }
+// Emit real-time event
+const io = req.app.get('io');
+if (io) {
+  // Only emit to relevant rooms, not globally
+  io.to('admin').to('kitchen').emit('newOrder', populatedOrder);
+  console.log('Emitted new order to admin and kitchen rooms');
+}
 
   res.status(201).json({
     success: true,
@@ -137,15 +138,20 @@ const createOrder = asyncHandler(async (req, res, next) => {
 // @access  Private (Kitchen, Runner, Admin)
 const updateOrderStatus = asyncHandler(async (req, res, next) => {
   const { status } = req.body;
+  
   const validStatuses = ['placed', 'preparing', 'ready', 'delivered', 'cancelled'];
 
   if (!status || !validStatuses.includes(status)) {
     return next(new ApiError(400, 'Valid status is required'));
   }
 
-  const order = await Order.findById(req.params.id);
+  // Use the correct parameter name based on your route
+  const orderId = req.params.orderId || req.params.id; // Try both to be safe
+  console.log('Updating order:', orderId, 'to status:', status);
+
+  const order = await Order.findById(orderId);
   if (!order) {
-    return next(new ApiError(404, `Order not found with id of ${req.params.id}`));
+    return next(new ApiError(404, `Order not found with id of ${orderId}`));
   }
 
   // Check if user has permission to make this status change
@@ -182,17 +188,19 @@ const updateOrderStatus = asyncHandler(async (req, res, next) => {
     .populate('items.menuItemId', 'name price');
 
   // Emit real-time event
-  // req.app.get('io').emit('orderStatusUpdated', populatedOrder);
-
-  // Emit real-time event
-const io = req.app.get('io');
-if (io) {
-  io.emit('orderStatusUpdated', populatedOrder);
-  // Notify specific rooms
-  io.to('admin').to('kitchen').to('runner').emit('orderStatusUpdated', populatedOrder);
-  io.to(`table-${populatedOrder.tableId._id}`).emit('orderStatusUpdated', populatedOrder);
-}
-
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('orderStatusUpdated', populatedOrder);
+    // Notify specific rooms
+    io.to('admin').to('kitchen').to('runner').emit('orderStatusUpdated', populatedOrder);
+    
+    // Only emit to table room if tableId exists
+    if (populatedOrder.tableId && populatedOrder.tableId._id) {
+      io.to(`table-${populatedOrder.tableId._id}`).emit('orderStatusUpdated', populatedOrder);
+    }
+    
+    console.log('Emitted order status update for order:', orderId);
+  }
 
   res.status(200).json({
     success: true,
@@ -258,7 +266,7 @@ const cancelOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get order by ID (public access for customers)
+// @desc    Get single order (public access for customers)
 // @route   GET /api/orders/public/:id
 // @access  Public
 const getOrderPublic = asyncHandler(async (req, res, next) => {
@@ -270,18 +278,23 @@ const getOrderPublic = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, `Order not found with id of ${req.params.id}`));
   }
 
-  // For public access, we can implement a simple security measure
-  // For example, only allow access to orders that are not too old
-  const orderAge = Date.now() - new Date(order.createdAt).getTime();
-  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-
-  if (orderAge > maxAge) {
-    return next(new ApiError(403, 'Order access expired'));
-  }
+  // For public access, only return essential information
+  const publicOrder = {
+    _id: order._id,
+    tableId: order.tableId,
+    items: order.items,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+    preparedAt: order.preparedAt,
+    readyAt: order.readyAt,
+    deliveredAt: order.deliveredAt
+  };
 
   res.status(200).json({
     success: true,
-    data: order
+    data: publicOrder
   });
 });
 

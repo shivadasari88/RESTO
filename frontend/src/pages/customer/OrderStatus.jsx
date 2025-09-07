@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useSocket } from '../../contexts/SocketContext';
 import { orderService } from '../../services/orderService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const OrderStatus = () => {
   const { orderId } = useParams();
+  const location = useLocation();
   const { socket, isConnected } = useSocket();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState(location.state?.order || null);
+  const [loading, setLoading] = useState(!location.state?.order);
   const [error, setError] = useState('');
 
   const statusSteps = [
@@ -19,26 +20,34 @@ const OrderStatus = () => {
   ];
 
   useEffect(() => {
-    loadOrder();
+    if (!order) {
+      loadOrder();
+    }
     setupSocketListeners();
 
     return () => {
       if (socket) {
         socket.off('orderStatusUpdated');
+        socket.off('paymentStatusUpdated');
       }
     };
   }, [orderId, socket]);
 
+  // In your OrderStatus component, add this useEffect for reconnection
+useEffect(() => {
+  if (!isConnected && socket) {
+    // Try to reconnect if disconnected
+    const reconnectTimer = setTimeout(() => {
+      socket.connect();
+    }, 2000);
+
+    return () => clearTimeout(reconnectTimer);
+  }
+}, [isConnected, socket]);
+
   const loadOrder = async () => {
-    if (order) {
-      // We already have the order data from navigation state
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
-      // Try to load order if not passed in state
       const response = await orderService.getOrderPublic(orderId);
       setOrder(response.data);
     } catch (err) {
@@ -52,14 +61,28 @@ const OrderStatus = () => {
   const setupSocketListeners = () => {
     if (!socket) return;
 
+    // Listen for order status updates
     socket.on('orderStatusUpdated', (updatedOrder) => {
+      console.log('Order status updated:', updatedOrder);
       if (updatedOrder._id === orderId) {
         setOrder(updatedOrder);
       }
     });
 
+    // Listen for payment status updates
+    socket.on('paymentStatusUpdated', (paymentData) => {
+      console.log('Payment status updated:', paymentData);
+      if (paymentData.orderId === orderId) {
+        setOrder(prev => ({
+          ...prev,
+          paymentStatus: paymentData.status === 'captured' ? 'completed' : 'failed'
+        }));
+      }
+    });
+
     socket.on('error', (error) => {
       console.error('Socket error:', error);
+      setError('Connection error. Please refresh the page.');
     });
   };
 
@@ -97,12 +120,19 @@ const OrderStatus = () => {
               {order.status.toUpperCase()}
             </span>
           </div>
+          {order.paymentStatus && (
+            <div className="mt-1">
+              <span className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-700 text-sm">
+                Payment: {order.paymentStatus}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Connection Status */}
         {!isConnected && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-            Real-time updates disconnected. Page will refresh automatically when connected.
+            🔄 Real-time updates disconnected. Page will update automatically when connected.
           </div>
         )}
 
@@ -123,7 +153,7 @@ const OrderStatus = () => {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
                     index <= currentStepIndex ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
                   }`}>
-                    {index + 1}
+                    {index < currentStepIndex ? '✓' : index + 1}
                   </div>
                   <div className="mt-2 text-center">
                     <p className="text-sm font-medium text-gray-800">{step.label}</p>
@@ -142,7 +172,7 @@ const OrderStatus = () => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-600">Table Number</p>
-              <p className="font-medium">#{order.tableId?.tableNumber}</p>
+              <p className="font-medium">#{order.tableId?.tableNumber || 'Unknown'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Order Time</p>
@@ -154,7 +184,7 @@ const OrderStatus = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Payment Status</p>
-              <p className="font-medium capitalize">{order.paymentStatus}</p>
+              <p className="font-medium capitalize">{order.paymentStatus || 'pending'}</p>
             </div>
           </div>
 
@@ -164,33 +194,26 @@ const OrderStatus = () => {
             {order.items.map((item, index) => (
               <div key={index} className="flex justify-between py-2 border-b last:border-b-0">
                 <div>
-                  <p className="font-medium">{item.menuItemId?.name}</p>
+                  <p className="font-medium">{item.menuItemId?.name || 'Item'}</p>
                   <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                   {item.specialInstructions && (
                     <p className="text-sm text-gray-500">Note: {item.specialInstructions}</p>
                   )}
                 </div>
-                <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
+                <p className="font-medium">₹{((item.price || 0) * item.quantity).toFixed(2)}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Estimated Time */}
-        {order.status === 'preparing' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h4 className="font-semibold text-blue-800 mb-2">Estimated Preparation Time</h4>
-            <p className="text-blue-600">Your food should be ready in approximately 15-20 minutes</p>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="flex space-x-4">
           <button
-            onClick={() => window.location.reload()}
-            className="btn-secondary flex-1"
+            onClick={loadOrder}
+            disabled={loading}
+            className="btn-secondary flex-1 disabled:opacity-50"
           >
-            Refresh Status
+            {loading ? 'Refreshing...' : 'Refresh Status'}
           </button>
           {order.paymentStatus === 'pending' && (
             <button
@@ -201,6 +224,16 @@ const OrderStatus = () => {
             </button>
           )}
         </div>
+
+        {/* Debug Info (remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+            <h4 className="font-semibold mb-2">Debug Information:</h4>
+            <p>Socket Connected: {isConnected ? 'Yes' : 'No'}</p>
+            <p>Order ID: {orderId}</p>
+            <p>Current Status: {order.status}</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,18 +1,10 @@
-// /frontend/src/services/orderService.js
 import api from './api';
 
 export const orderService = {
   // Create new order
   createOrder: async (orderData) => {
-    console.log('Creating order with data:', orderData);
-    try {
-      const response = await api.post('/api/orders', orderData);
-      console.log('Order creation successful:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Order creation failed:', error.response?.data || error.message);
-      throw error;
-    }
+    const response = await api.post('/api/orders', orderData);
+    return response.data;
   },
 
   // Get order by ID
@@ -21,7 +13,8 @@ export const orderService = {
     return response.data;
   },
 
-getOrderPublic: async (id) => {
+  // Get order by ID (public access)
+  getOrderPublic: async (id) => {
     const response = await api.get(`/api/orders/public/${id}`);
     return response.data;
   },
@@ -29,6 +22,12 @@ getOrderPublic: async (id) => {
   // Get orders by table
   getOrdersByTable: async (tableId) => {
     const response = await api.get(`/api/orders/table/${tableId}`);
+    return response.data;
+  },
+
+  // Get all orders (for staff)
+  getOrders: async () => {
+    const response = await api.get('/api/orders');
     return response.data;
   },
 

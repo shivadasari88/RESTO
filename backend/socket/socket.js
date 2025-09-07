@@ -26,8 +26,18 @@ const configureSocket = (server) => {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
       
       if (!token) {
-        // Allow anonymous connections (for customers)
-        socket.user = { role: 'customer' };
+        // Allow anonymous connections (for customers without login)
+        // But we need to validate they have a tableId for tracking
+        const tableId = socket.handshake.query.tableId;
+        if (!tableId) {
+          console.log('Anonymous connection without tableId - allowing but with limited access');
+        }
+        
+        socket.user = { 
+          role: 'customer',
+          isAnonymous: true,
+          tableId: tableId || null
+        };
         return next();
       }
 
@@ -42,7 +52,17 @@ const configureSocket = (server) => {
       socket.user = user;
       next();
     } catch (error) {
-      next(new Error('Authentication error'));
+      console.error('Socket auth error:', error.message);
+      
+      // Allow anonymous connections even if token is invalid
+      // This prevents customers from being disconnected if token expires
+      const tableId = socket.handshake.query.tableId;
+      socket.user = { 
+        role: 'customer',
+        isAnonymous: true,
+        tableId: tableId || null
+      };
+      next();
     }
   });
 
@@ -63,6 +83,22 @@ const configureSocket = (server) => {
       socket.join(`table-${tableId}`);
       console.log(`Customer joined table room: table-${tableId}`);
     }
+
+    // Handle joining table room
+    socket.on('joinTable', (tableId) => {
+      if (tableId) {
+        socket.join(`table-${tableId}`);
+        console.log(`Socket ${socket.id} joined table room: table-${tableId}`);
+      }
+    });
+
+    // Handle joining role room
+    socket.on('joinRole', (role) => {
+      if (['admin', 'kitchen', 'runner'].includes(role)) {
+        socket.join(role);
+        console.log(`Socket ${socket.id} joined role room: ${role}`);
+      }
+    });
 
     // Handle order status updates from staff
     socket.on('updateOrderStatus', async (data) => {
@@ -142,8 +178,8 @@ const configureSocket = (server) => {
     });
 
     // Handle disconnection
-    socket.on('disconnect', () => {
-      console.log(`User disconnected: ${socket.id}`);
+    socket.on('disconnect', (reason) => {
+      console.log(`User disconnected: ${socket.id} (Reason: ${reason})`);
       
       // Remove from connected users
       if (socket.user.role && connectedUsers[socket.user.role]) {

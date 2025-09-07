@@ -56,9 +56,9 @@ const handleSubmitOrder = async () => {
     clearCart();
     
     // Redirect to order status page
-    navigate(`/order-status/${response.data._id}`, {
-      state: { order: response.data } // Pass the order data
-    });
+    navigate(`/order-status/${response.data._id}`, { 
+  state: { order: response.data } 
+});
     
   } catch (err) {
     const errorMessage = err.response?.data?.error || 
