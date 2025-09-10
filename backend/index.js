@@ -50,6 +50,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu')); 
 app.use('/api/orders', require('./routes/orders')); 
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/tables', require('./routes/tables'));
 
 // Handle undefined routes
 app.all('*', (req, res, next) => {

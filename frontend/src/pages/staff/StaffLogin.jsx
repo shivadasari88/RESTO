@@ -6,8 +6,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 const StaffLogin = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    role: 'kitchen' // Default to kitchen staff
+    password: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,40 +20,44 @@ const StaffLogin = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  try {
-    // Only send email and password for login
-    const loginData = {
-      email: formData.email,
-      password: formData.password
-    };
-
-    const response = await authService.login(loginData);
-    
-    // Save token and user data
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.data));
-    
-    // Redirect based on role from response, not from form
-    if (response.data.data.role === 'kitchen') {
-      navigate('/staff/kitchen');
-    } else if (response.data.data.role === 'runner') {
-      navigate('/staff/runner');
-    } else {
-      setError('Access denied. Staff accounts only.');
+    try {
+      const response = await authService.login(formData);
+      
+      // Save token and user data
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data));
+      
+      const userRole = response.data.data.role;
+      
+      // Redirect based on actual user role from backend
+      if (userRole === 'kitchen') {
+        navigate('/staff/kitchen');
+      } else if (userRole === 'runner') {
+        navigate('/staff/runner');
+      } else if (userRole === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        setError('Access denied. Staff accounts only.');
+        // Clear invalid credentials
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+      
+      // Clear any potentially invalid stored data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    } finally {
+      setLoading(false);
     }
-    
-  } catch (err) {
-    // Add better error logging
-    console.error('Login error:', err);
-    setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -75,22 +78,6 @@ const StaffLogin = () => {
                 {error}
               </div>
             )}
-
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-              >
-                <option value="kitchen">Kitchen Staff</option>
-                <option value="runner">Service Runner</option>
-              </select>
-            </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -146,6 +133,9 @@ const StaffLogin = () => {
             </div>
 
             <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Admin:</strong> admin@restaurant.com / password123
+              </p>
               <p className="text-sm text-gray-600 mb-2">
                 <strong>Kitchen Staff:</strong> kitchen@restaurant.com / password123
               </p>

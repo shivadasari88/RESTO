@@ -27,6 +27,9 @@ const StaffLayout = ({ children, role }) => {
   const navigation = [
     { name: 'Kitchen Dashboard', href: '/staff/kitchen', role: 'kitchen' },
     { name: 'Runner Dashboard', href: '/staff/runner', role: 'runner' },
+      { name: 'Admin Dashboard', href: '/admin/dashboard', role: 'admin' },
+  { name: 'Table Management', href: '/admin/tables', role: 'admin' },
+  { name: 'Menu Management', href: '/admin/menu', role: 'admin' },
   ];
 
   return (

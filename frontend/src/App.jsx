@@ -17,6 +17,10 @@ import StaffLogin from './pages/staff/StaffLogin';
 import KitchenDashboard from './pages/staff/KitchenDashboard';
 import RunnerDashboard from './pages/staff/RunnerDashboard';
 
+import AdminDashboard from './pages/admin/AdminDashboard';
+import TableManagement from './pages/admin/Tablemanagement';
+import MenuManagement from './pages/admin/MenuManagement';
+
 function App() {
   return (
     <Router>
@@ -72,6 +76,11 @@ function App() {
                     </div>
                   </div>
                 } />
+                <Route path="/admin/menu" element={
+  <ProtectedRoute allowedRoles={['admin']}>
+    <MenuManagement />
+  </ProtectedRoute>
+} />
               </Routes>
             </main>
 
@@ -79,6 +88,16 @@ function App() {
             <Routes>
               <Route path="/staff/*" element={null} />
               <Route path="*" element={<Footer />} />
+                          <Route path="/admin/dashboard" element={
+  <ProtectedRoute allowedRoles={['admin']}>
+    <AdminDashboard />
+  </ProtectedRoute>
+} />
+<Route path="/admin/tables" element={
+  <ProtectedRoute allowedRoles={['admin']}>
+    <TableManagement />
+  </ProtectedRoute>
+} />
             </Routes>
           </div>
         </SocketProvider>
