@@ -20,6 +20,7 @@ import RunnerDashboard from './pages/staff/RunnerDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TableManagement from './pages/admin/Tablemanagement';
 import MenuManagement from './pages/admin/MenuManagement';
+import './App.css';
 
 function App() {
   return (
