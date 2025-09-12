@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import NotificationBell from '../common/NotificationBell';
 
 const StaffLayout = ({ children, role }) => {
   const location = useLocation();
@@ -27,9 +28,9 @@ const StaffLayout = ({ children, role }) => {
   const navigation = [
     { name: 'Kitchen Dashboard', href: '/staff/kitchen', role: 'kitchen' },
     { name: 'Runner Dashboard', href: '/staff/runner', role: 'runner' },
-      { name: 'Admin Dashboard', href: '/admin/dashboard', role: 'admin' },
-  { name: 'Table Management', href: '/admin/tables', role: 'admin' },
-  { name: 'Menu Management', href: '/admin/menu', role: 'admin' },
+    { name: 'Admin Dashboard', href: '/admin/dashboard', role: 'admin' },
+    { name: 'Table Management', href: '/admin/tables', role: 'admin' },
+    { name: 'Menu Management', href: '/admin/menu', role: 'admin' },
   ];
 
   return (
@@ -39,7 +40,9 @@ const StaffLayout = ({ children, role }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-primary-600">Staff Portal</h1>
+              <Link to={role === 'admin' ? '/admin/dashboard' : role === 'kitchen' ? '/staff/kitchen' : '/staff/runner'} className="flex items-center">
+                <h1 className="text-2xl font-bold text-primary-600">Staff Portal</h1>
+              </Link>
               <nav className="ml-8 flex space-x-4">
                 {navigation
                   .filter(item => item.role === role)
@@ -60,6 +63,7 @@ const StaffLayout = ({ children, role }) => {
             </div>
 
             <div className="flex items-center space-x-4">
+              <NotificationBell />
               <span className="text-sm text-gray-600">
                 Logged in as <strong>{user?.name || 'User'}</strong> ({role})
               </span>

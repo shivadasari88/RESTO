@@ -22,11 +22,15 @@ import TableManagement from './pages/admin/Tablemanagement';
 import MenuManagement from './pages/admin/MenuManagement';
 import './App.css';
 
+import { NotificationProvider } from './contexts/NotificationContext';
+import ToastNotification from './components/common/ToastNotification';
+
 function App() {
   return (
     <Router>
       <CartProvider>
         <SocketProvider>
+          <NotificationProvider>
           <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Only show header/footer for customer pages */}
             <Routes>
@@ -101,6 +105,8 @@ function App() {
 } />
             </Routes>
           </div>
+          <ToastNotification />
+      </NotificationProvider>
         </SocketProvider>
       </CartProvider>
     </Router>
