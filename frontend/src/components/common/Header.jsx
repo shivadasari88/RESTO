@@ -10,7 +10,7 @@ const Header = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center">
-            <h1 className="text-2xl font-bold text-white">Delicious Bites</h1>
+            <h1 className="text-2xl font-bold text-white">DELICIOUS BITES</h1>
           </Link>
           
           <div className="flex items-center space-x-4">
