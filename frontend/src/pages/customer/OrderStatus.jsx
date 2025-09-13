@@ -13,10 +13,10 @@ const OrderStatus = () => {
   const [error, setError] = useState('');
 
   const statusSteps = [
-    { status: 'placed', label: 'Order Placed', description: 'Your order has been received' },
-    { status: 'preparing', label: 'Preparing', description: 'Kitchen is cooking your food' },
-    { status: 'ready', label: 'Ready to Serve', description: 'Your order is ready!' },
-    { status: 'delivered', label: 'Delivered', description: 'Enjoy your meal!' }
+    { status: 'placed', label: 'Order Placed', description: 'Your order has been received', icon: '📝' },
+    { status: 'preparing', label: 'Preparing', description: 'Kitchen is cooking your food', icon: '👨‍🍳' },
+    { status: 'ready', label: 'Ready to Serve', description: 'Your order is ready!', icon: '✅' },
+    { status: 'delivered', label: 'Delivered', description: 'Enjoy your meal!', icon: '🍽️' }
   ];
 
   useEffect(() => {
@@ -33,17 +33,15 @@ const OrderStatus = () => {
     };
   }, [orderId, socket]);
 
-  // In your OrderStatus component, add this useEffect for reconnection
-useEffect(() => {
-  if (!isConnected && socket) {
-    // Try to reconnect if disconnected
-    const reconnectTimer = setTimeout(() => {
-      socket.connect();
-    }, 2000);
+  useEffect(() => {
+    if (!isConnected && socket) {
+      const reconnectTimer = setTimeout(() => {
+        socket.connect();
+      }, 2000);
 
-    return () => clearTimeout(reconnectTimer);
-  }
-}, [isConnected, socket]);
+      return () => clearTimeout(reconnectTimer);
+    }
+  }, [isConnected, socket]);
 
   const loadOrder = async () => {
     try {
@@ -61,7 +59,6 @@ useEffect(() => {
   const setupSocketListeners = () => {
     if (!socket) return;
 
-    // Listen for order status updates
     socket.on('orderStatusUpdated', (updatedOrder) => {
       console.log('Order status updated:', updatedOrder);
       if (updatedOrder._id === orderId) {
@@ -69,7 +66,6 @@ useEffect(() => {
       }
     });
 
-    // Listen for payment status updates
     socket.on('paymentStatusUpdated', (paymentData) => {
       console.log('Payment status updated:', paymentData);
       if (paymentData.orderId === orderId) {
@@ -94,7 +90,7 @@ useEffect(() => {
   const getStatusColor = (status) => {
     const colors = {
       placed: 'bg-blue-500',
-      preparing: 'bg-yellow-500',
+      preparing: 'bg-amber-500',
       ready: 'bg-green-500',
       delivered: 'bg-green-700',
       cancelled: 'bg-red-500'
@@ -103,61 +99,76 @@ useEffect(() => {
   };
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="text-center text-red-600 py-8">{error}</div>;
-  if (!order) return <div className="text-center py-8">Order not found</div>;
+  if (error) return <div className="min-h-screen bg-amber-50 flex items-center justify-center text-red-600 text-xl">{error}</div>;
+  if (!order) return <div className="min-h-screen bg-amber-50 flex items-center justify-center text-amber-900 text-xl">Order not found</div>;
 
   const currentStepIndex = getCurrentStepIndex();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-amber-50 py-8">
+      <div className="container mx-auto px-4 max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Order Status</h2>
-          <p className="text-gray-600">Order # {order._id.slice(-8).toUpperCase()}</p>
-          <div className="mt-2">
-            <span className={`inline-block px-3 py-1 rounded-full text-white ${getStatusColor(order.status)}`}>
-              {order.status.toUpperCase()}
-            </span>
-          </div>
-          {order.paymentStatus && (
-            <div className="mt-1">
-              <span className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-700 text-sm">
-                Payment: {order.paymentStatus}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-amber-900 mb-2">Order Status</h2>
+            <p className="text-amber-700 mb-3">Order # {order._id.slice(-8).toUpperCase()}</p>
+            
+            <div className="flex flex-col items-center gap-2">
+              <span className={`inline-block px-4 py-2 rounded-full text-white font-semibold ${getStatusColor(order.status)}`}>
+                {order.status.toUpperCase()}
               </span>
+              
+              {order.paymentStatus && (
+                <span className={`inline-block px-3 py-1 rounded-full text-sm ${
+                  order.paymentStatus === 'completed' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  Payment: {order.paymentStatus}
+                </span>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Connection Status */}
         {!isConnected && (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-            🔄 Real-time updates disconnected. Page will update automatically when connected.
+          <div className="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded-xl mb-6 flex items-center">
+            <span className="text-lg mr-2">🔄</span>
+            <span>Real-time updates disconnected. Page will update automatically when connected.</span>
           </div>
         )}
 
         {/* Progress Steps */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h3 className="text-xl font-semibold text-amber-900 mb-6 text-center">Order Progress</h3>
+          
           <div className="relative">
             {/* Progress Line */}
-            <div className="absolute left-0 right-0 top-1/2 h-1 bg-gray-200 -translate-y-1/2"></div>
+            <div className="absolute left-4 right-4 top-1/2 h-2 bg-amber-100 -translate-y-1/2 rounded-full"></div>
             <div 
-              className="absolute left-0 top-1/2 h-1 bg-primary-600 -translate-y-1/2 transition-all duration-300"
-              style={{ width: `${(currentStepIndex / (statusSteps.length - 1)) * 100}%` }}
+              className="absolute left-4 top-1/2 h-2 bg-amber-600 -translate-y-1/2 rounded-full transition-all duration-500"
+              style={{ width: `${(currentStepIndex / (statusSteps.length - 1)) * 80}%` }}
             ></div>
 
             {/* Steps */}
-            <div className="relative flex justify-between">
+            <div className="relative grid grid-cols-4 gap-4">
               {statusSteps.map((step, index) => (
                 <div key={step.status} className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
-                    index <= currentStepIndex ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center z-10 border-4 transition-all duration-300 ${
+                    index <= currentStepIndex 
+                      ? 'border-amber-600 bg-amber-600 text-white shadow-lg' 
+                      : 'border-amber-100 bg-white text-amber-400'
                   }`}>
-                    {index < currentStepIndex ? '✓' : index + 1}
+                    <span className="text-lg">{step.icon}</span>
                   </div>
-                  <div className="mt-2 text-center">
-                    <p className="text-sm font-medium text-gray-800">{step.label}</p>
-                    <p className="text-xs text-gray-600">{step.description}</p>
+                  <div className="mt-3 text-center">
+                    <p className={`text-sm font-semibold ${
+                      index <= currentStepIndex ? 'text-amber-900' : 'text-amber-600'
+                    }`}>
+                      {step.label}
+                    </p>
+                    <p className="text-xs text-amber-500 mt-1">{step.description}</p>
                   </div>
                 </div>
               ))}
@@ -166,72 +177,103 @@ useEffect(() => {
         </div>
 
         {/* Order Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-xl font-semibold mb-4">Order Details</h3>
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <h3 className="text-xl font-semibold text-amber-900 mb-6 border-b border-amber-100 pb-3">Order Details</h3>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-gray-600">Table Number</p>
-              <p className="font-medium">#{order.tableId?.tableNumber || 'Unknown'}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-amber-50 p-4 rounded-xl">
+              <p className="text-sm text-amber-600 font-medium">Table Number</p>
+              <p className="font-semibold text-amber-900 text-lg">#{order.tableId?.tableNumber || 'Unknown'}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Order Time</p>
-              <p className="font-medium">{new Date(order.createdAt).toLocaleTimeString()}</p>
+            
+            <div className="bg-amber-50 p-4 rounded-xl">
+              <p className="text-sm text-amber-600 font-medium">Order Time</p>
+              <p className="font-semibold text-amber-900 text-lg">
+                {new Date(order.createdAt).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Amount</p>
-              <p className="font-medium">₹{(order.totalAmount * 1.18).toFixed(2)}</p>
+            
+            <div className="bg-amber-50 p-4 rounded-xl">
+              <p className="text-sm text-amber-600 font-medium">Total Amount</p>
+              <p className="font-semibold text-amber-900 text-lg">
+                ₹{(order.totalAmount * 1.18).toFixed(2)}
+              </p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Payment Status</p>
-              <p className="font-medium capitalize">{order.paymentStatus || 'pending'}</p>
+            
+            <div className="bg-amber-50 p-4 rounded-xl">
+              <p className="text-sm text-amber-600 font-medium">Payment Status</p>
+              <p className="font-semibold text-amber-900 text-lg capitalize">
+                {order.paymentStatus || 'pending'}
+              </p>
             </div>
           </div>
 
           {/* Order Items */}
-          <h4 className="font-semibold mb-3">Items Ordered</h4>
-          <div className="space-y-2">
+          <h4 className="font-semibold text-amber-900 mb-4">Items Ordered</h4>
+          <div className="space-y-3">
             {order.items.map((item, index) => (
-              <div key={index} className="flex justify-between py-2 border-b last:border-b-0">
-                <div>
-                  <p className="font-medium">{item.menuItemId?.name || 'Item'}</p>
-                  <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+              <div key={index} className="flex justify-between items-center p-4 bg-amber-50 rounded-xl">
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-900">{item.menuItemId?.name || 'Item'}</p>
+                  <p className="text-sm text-amber-600">Quantity: {item.quantity}</p>
                   {item.specialInstructions && (
-                    <p className="text-sm text-gray-500">Note: {item.specialInstructions}</p>
+                    <p className="text-sm text-amber-500 mt-1">Note: {item.specialInstructions}</p>
                   )}
                 </div>
-                <p className="font-medium">₹{((item.price || 0) * item.quantity).toFixed(2)}</p>
+                <p className="font-bold text-amber-900 text-lg">
+                  ₹{((item.price || 0) * item.quantity).toFixed(2)}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <button
             onClick={loadOrder}
             disabled={loading}
-            className="btn-secondary flex-1 disabled:opacity-50"
+            className="flex-1 bg-amber-100 hover:bg-amber-200 disabled:bg-amber-50 text-amber-800 px-6 py-3 rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
           >
-            {loading ? 'Refreshing...' : 'Refresh Status'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <LoadingSpinner size="small" />
+                Refreshing...
+              </span>
+            ) : (
+              '🔄 Refresh Status'
+            )}
           </button>
+          
           {order.paymentStatus === 'pending' && (
             <button
               onClick={() => window.location.href = `/payment?orderId=${order._id}`}
-              className="btn-primary flex-1"
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-300 shadow-md hover:shadow-lg"
             >
-              Proceed to Payment
+              💳 Proceed to Payment
             </button>
           )}
         </div>
 
+        {/* Estimated Time (optional) */}
+        {order.status === 'preparing' && (
+          <div className="text-center mt-6 p-4 bg-amber-100 rounded-xl">
+            <p className="text-amber-800 font-medium">
+              ⏱️ Your food will be ready in approximately 15-20 minutes
+            </p>
+          </div>
+        )}
+
         {/* Debug Info (remove in production) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-            <h4 className="font-semibold mb-2">Debug Information:</h4>
-            <p>Socket Connected: {isConnected ? 'Yes' : 'No'}</p>
-            <p>Order ID: {orderId}</p>
-            <p>Current Status: {order.status}</p>
+          <div className="mt-6 p-4 bg-amber-100 rounded-xl">
+            <h4 className="font-semibold text-amber-900 mb-2">Debug Information:</h4>
+            <p className="text-amber-700">Socket Connected: {isConnected ? 'Yes' : 'No'}</p>
+            <p className="text-amber-700">Order ID: {orderId}</p>
+            <p className="text-amber-700">Current Status: {order.status}</p>
           </div>
         )}
       </div>
